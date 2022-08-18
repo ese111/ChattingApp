@@ -1,17 +1,24 @@
 package com.example.chattingforstreamsdk
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.children
 import com.example.chattingforstreamsdk.databinding.ActivityMainBinding
 import io.getstream.chat.android.client.ChatClient
 import io.getstream.chat.android.client.logger.ChatLogLevel
+import io.getstream.chat.android.client.models.Filters
 import io.getstream.chat.android.client.models.User
 import io.getstream.chat.android.offline.plugin.configuration.Config
 import io.getstream.chat.android.offline.plugin.factory.StreamOfflinePluginFactory
+import io.getstream.chat.android.ui.StyleTransformer
+import io.getstream.chat.android.ui.TransformStyle
+import io.getstream.chat.android.ui.channel.list.header.viewmodel.ChannelListHeaderViewModel
+import io.getstream.chat.android.ui.channel.list.header.viewmodel.bindView
 import io.getstream.chat.android.ui.channel.list.viewmodel.ChannelListViewModel
 import io.getstream.chat.android.ui.channel.list.viewmodel.bindView
 import io.getstream.chat.android.ui.channel.list.viewmodel.factory.ChannelListViewModelFactory
+import kotlin.random.Random
 
 class MainActivity : AppCompatActivity() {
 
@@ -23,11 +30,11 @@ class MainActivity : AppCompatActivity() {
 
     private val user = User(
         id = "marvel",
-        name = "Iron Man",
-        image = "https://bit.ly/2TIt8NR"
+        name = "iron man",
+        image = "https://ifh.cc/g/cKhWxt.jpg"
     )
 
-    private var cnt = 0
+    private var cnt = Random(1000)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,7 +42,7 @@ class MainActivity : AppCompatActivity() {
 
         val offlinePluginFactory = StreamOfflinePluginFactory(
             config = Config(),
-            appContext = applicationContext,
+            appContext = applicationContext
         )
 
         client = ChatClient.Builder(BuildConfig.SDK_KEY, applicationContext)
@@ -45,6 +52,7 @@ class MainActivity : AppCompatActivity() {
 
 
         val token = client.devToken(user.id) // developer 토큰 생성
+
         client.connectUser( // 유저 로그인
             user = user,
             token = token
@@ -56,12 +64,39 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Step 5 - ChannelListViewModel 생성 및 ChannelListView과 연동
-        val viewModelFactory = ChannelListViewModelFactory()
+        val viewModelFactory = ChannelListViewModelFactory(
+            filter = Filters.and(
+                Filters.`in`("members", listOf(ChatClient.instance().getCurrentUser()!!.id)),
+            )
+        )
         val viewModel: ChannelListViewModel by viewModels { viewModelFactory }
         viewModel.bindView(binding.channelListView, this)
+
+        val headerViewModel: ChannelListHeaderViewModel by viewModels()
+        headerViewModel.bindView(binding.channelListHeaderView, this)
+
         binding.channelListView.setChannelItemClickListener { channel ->
             startActivity(MessageListActivity.newIntent(this, channel))
         }
+
+//        binding.channelListView.setViewHolderFactory(CustomChannelListItemViewHolderFactory())
+        binding.channelListHeaderView.apply {
+            title = "채팅"
+        }
+
+        TransformStyle.messageListItemStyleTransformer =
+            StyleTransformer { messageListItemStyle ->
+                messageListItemStyle.copy(
+                    textStyleDateSeparator = messageListItemStyle.textStyleDateSeparator,
+                )
+            }
+
+        TransformStyle.messageInputStyleTransformer =
+            StyleTransformer { messageInputStyle ->
+                messageInputStyle.copy(
+                    commandInputBadgeIcon = requireNotNull(getDrawable(R.drawable.ic_baseline_camera_alt_24))
+                )
+            }
 
     }
 
@@ -69,11 +104,10 @@ class MainActivity : AppCompatActivity() {
         binding.btnNewChat.setOnClickListener {
             client.createChannel(
                 channelType = "messaging",
-                channelId = "new_channel_$cnt",
+                channelId = "new_channel_${cnt.nextInt()}",
                 memberIds = listOf(user.id),
-                extraData = mapOf("name" to "$cnt New Channel")
+                extraData = mapOf("name" to "${cnt.nextInt()}", "image" to "https://ifh.cc/g/sSr5Rr.png")
             ).enqueue()
-            cnt++
         }
     }
 }

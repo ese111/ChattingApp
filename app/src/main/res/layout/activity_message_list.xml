@@ -12,6 +12,8 @@
         android:layout_height="match_parent"
         tools:context=".MessageListActivity">
 
+
+
         <io.getstream.chat.android.ui.message.list.header.MessageListHeaderView
             android:id="@+id/messageListHeaderView"
             android:layout_width="0dp"
@@ -35,7 +37,10 @@
             android:layout_height="wrap_content"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
+            app:layout_constraintStart_toStartOf="parent"
+            app:streamUiAllowAccessToCameraIcon="@drawable/ic_baseline_camera_alt_24"
+            app:streamUiAllowAccessToCameraText="카메라"
+            app:streamUiAttachmentVideoLengthVisible="true"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

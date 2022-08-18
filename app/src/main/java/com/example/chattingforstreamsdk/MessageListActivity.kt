@@ -69,6 +69,7 @@ class MessageListActivity : AppCompatActivity() {
         onBackPressedDispatcher.addCallback(this) {
             backHandler()
         }
+
     }
 
     companion object {
