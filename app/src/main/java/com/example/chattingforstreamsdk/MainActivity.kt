@@ -29,12 +29,29 @@ class MainActivity : AppCompatActivity() {
     private lateinit var client: ChatClient
 
     private val user = User(
-        id = "marvel",
-        name = "iron man",
+        id = "funny",
+        name = "gg",
         image = "https://ifh.cc/g/cKhWxt.jpg"
     )
 
     private var cnt = Random(1000)
+
+    init {
+        TransformStyle.messageListItemStyleTransformer =
+            StyleTransformer { messageListItemStyle ->
+                messageListItemStyle.copy(
+                    textStyleDateSeparator = messageListItemStyle.textStyleDateSeparator,
+                )
+            }
+
+        TransformStyle.messageInputStyleTransformer =
+            StyleTransformer { messageInputStyle ->
+                messageInputStyle.copy(
+                    commandInputBadgeIcon = requireNotNull(getDrawable(R.drawable.ic_baseline_camera_alt_24)),
+
+                )
+            }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,11 +81,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Step 5 - ChannelListViewModel 생성 및 ChannelListView과 연동
-        val viewModelFactory = ChannelListViewModelFactory(
-            filter = Filters.and(
-                Filters.`in`("members", listOf(ChatClient.instance().getCurrentUser()!!.id)),
-            )
-        )
+        val viewModelFactory = ChannelListViewModelFactory()
+
         val viewModel: ChannelListViewModel by viewModels { viewModelFactory }
         viewModel.bindView(binding.channelListView, this)
 
@@ -84,19 +98,7 @@ class MainActivity : AppCompatActivity() {
             title = "채팅"
         }
 
-        TransformStyle.messageListItemStyleTransformer =
-            StyleTransformer { messageListItemStyle ->
-                messageListItemStyle.copy(
-                    textStyleDateSeparator = messageListItemStyle.textStyleDateSeparator,
-                )
-            }
 
-        TransformStyle.messageInputStyleTransformer =
-            StyleTransformer { messageInputStyle ->
-                messageInputStyle.copy(
-                    commandInputBadgeIcon = requireNotNull(getDrawable(R.drawable.ic_baseline_camera_alt_24))
-                )
-            }
 
     }
 
@@ -105,7 +107,7 @@ class MainActivity : AppCompatActivity() {
             client.createChannel(
                 channelType = "messaging",
                 channelId = "new_channel_${cnt.nextInt()}",
-                memberIds = listOf(user.id),
+                memberIds = listOf(user.id, "ese111", "marvel"),
                 extraData = mapOf("name" to "${cnt.nextInt()}", "image" to "https://ifh.cc/g/sSr5Rr.png")
             ).enqueue()
         }

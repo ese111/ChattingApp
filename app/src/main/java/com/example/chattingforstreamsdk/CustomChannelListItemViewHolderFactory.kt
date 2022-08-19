@@ -39,11 +39,7 @@ class CustomChannelViewHolder(
 
         binding.apply {
             avatarView.setChannelData(channel)
-//            if(channel.image != "") {
-//                Log.d("TAG", channel.image)
-//            } else {
-//                ivProfile.setImageDrawable(binding.root.context.getDrawable(R.drawable.ic_profile_circle))
-//            }
+
             nameTextView.text = ChatUI.channelNameFormatter.formatChannelName(
                 channel = channel,
                 currentUser = ChatClient.instance().getCurrentUser()

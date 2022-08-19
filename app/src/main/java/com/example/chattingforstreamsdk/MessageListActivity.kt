@@ -2,19 +2,29 @@ package com.example.chattingforstreamsdk
 
 import android.content.Context
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
+import android.view.View
+import android.widget.TextView
 import androidx.activity.addCallback
 import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.example.chattingforstreamsdk.databinding.ActivityMessageListBinding
 import com.getstream.sdk.chat.viewmodel.MessageInputViewModel
 import com.getstream.sdk.chat.viewmodel.messages.MessageListViewModel
 import io.getstream.chat.android.client.models.Channel
-import io.getstream.chat.android.ui.message.input.viewmodel.bindView
-import io.getstream.chat.android.ui.message.list.header.viewmodel.MessageListHeaderViewModel
-import io.getstream.chat.android.ui.message.list.header.viewmodel.bindView
+import io.getstream.chat.android.common.state.Edit
+import io.getstream.chat.android.common.state.MessageMode
+import io.getstream.chat.android.common.state.Reply
+import io.getstream.chat.android.core.ExperimentalStreamChatApi
+import io.getstream.chat.android.ui.message.composer.viewmodel.MessageComposerViewModel
+import io.getstream.chat.android.ui.message.composer.viewmodel.bindView
 import io.getstream.chat.android.ui.message.list.viewmodel.bindView
 import io.getstream.chat.android.ui.message.list.viewmodel.factory.MessageListViewModelFactory
+import kotlinx.coroutines.launch
 
 class MessageListActivity : AppCompatActivity() {
 
@@ -22,6 +32,7 @@ class MessageListActivity : AppCompatActivity() {
         ActivityMessageListBinding.inflate(layoutInflater)
     }
 
+    @OptIn(ExperimentalStreamChatApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
@@ -31,24 +42,30 @@ class MessageListActivity : AppCompatActivity() {
 
         // Step 1 - 채팅방 컴포넌트에 연결할 뷰모델 초기화
         val factory = MessageListViewModelFactory(cid)
-        val messageListHeaderViewModel: MessageListHeaderViewModel by viewModels { factory }
+//        val messageListHeaderViewModel: MessageListHeaderViewModel by viewModels { factory }
         val messageListViewModel: MessageListViewModel by viewModels { factory }
         val messageInputViewModel: MessageInputViewModel by viewModels { factory }
+        val messageComposerViewModel: MessageComposerViewModel by viewModels { factory }
 
         // Step 2 - 채팅방 컴포넌트에 뷰모델 연결
-        messageListHeaderViewModel.bindView(binding.messageListHeaderView, this)
+//        messageListHeaderViewModel.bindView(binding.messageListHeaderView, this)
         messageListViewModel.bindView(binding.messageListView, this)
-        messageInputViewModel.bindView(binding.messageInputView, this)
+//        messageInputViewModel.bindView(binding.messageInputView, this)
+        messageComposerViewModel.bindView(binding.messageComposerView, this)
 
         // Step 3 - MessageListHeaderView와 MessageInputView 연결 및 채팅 쓰레드 모드 업데이트
         messageListViewModel.mode.observe(this) { mode ->
             when (mode) {
                 is MessageListViewModel.Mode.Thread -> {
-                    messageListHeaderViewModel.setActiveThread(mode.parentMessage)
+//                    messageListHeaderViewModel.setActiveThread(mode.parentMessage)
+                    messageComposerViewModel.setMessageMode(MessageMode.MessageThread(mode.parentMessage))
                     messageInputViewModel.setActiveThread(mode.parentMessage)
+
                 }
-                MessageListViewModel.Mode.Normal -> {
-                    messageListHeaderViewModel.resetThread()
+                is MessageListViewModel.Mode.Normal -> {
+                    Log.d("FunnyApp" , "${mode.toString()}")
+//                    messageListHeaderViewModel.resetThread()
+                    messageComposerViewModel.leaveThread()
                     messageInputViewModel.resetThread()
                 }
             }
@@ -65,11 +82,57 @@ class MessageListActivity : AppCompatActivity() {
         val backHandler = {
             messageListViewModel.onEvent(MessageListViewModel.Event.BackButtonPressed)
         }
-        binding.messageListHeaderView.setBackButtonClickListener(backHandler)
+        binding.messageListHeaderView.setNavigationOnClickListener {
+            backHandler()
+        }
         onBackPressedDispatcher.addCallback(this) {
             backHandler()
         }
 
+        binding.messageListView.setMessageReplyHandler { _, message ->
+            messageComposerViewModel.performMessageAction(Reply(message))
+        }
+        binding.messageListView.setMessageEditHandler { message ->
+            messageComposerViewModel.performMessageAction(Edit(message))
+        }
+
+        messageListViewModel.targetMessage.observe(this) {
+            Log.d("FunnyApp" , "${it.text}")
+        }
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                messageListViewModel.channelState.collect {
+                    it?.messages?.value?.forEach {
+                        Log.d("FunnyApp" , "${it.text}")
+                    }
+                    Log.d("FunnyApp" , "${it?.messages?.value?.size}")
+                    it?.messages?.collect { list ->
+                        if(list.isNotEmpty()) {
+                            binding.instanceMessage.visibility = View.GONE
+                        }
+                    }
+                }
+            }
+        }
+        binding.messageComposerView.setLeadingContent(CustomMessageComposerLeadingContent(this))
+        binding.messageComposerView.setLeadingContent(
+            CustomMessageComposerLeadingContent(this).also {
+                it.datePickerButtonClickListener = {
+                    binding.messageComposerView.attachmentsButtonClickListener()
+                }
+            }
+        )
+
+        binding.one.setOnClickListener { message ->
+            message as TextView
+            messageComposerViewModel.sendMessage(messageComposerViewModel.buildNewMessage(message.text.toString()))
+        }
+
+        binding.two.setOnClickListener { message ->
+            message as TextView
+            messageComposerViewModel.sendMessage(messageComposerViewModel.buildNewMessage(message.text.toString()))
+        }
     }
 
     companion object {

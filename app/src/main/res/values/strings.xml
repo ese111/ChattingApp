@@ -5,5 +5,5 @@
         <item quantity="one">%1d Member</item>
         <item quantity="other">%1d Members</item>
     </plurals>
-    <string name="time">%d 분전</string>
+    <string name="time">%d분</string>
 </resources>
